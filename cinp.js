@@ -62,9 +62,10 @@ class CInP
                                                 'CInP-Version': '0.9'
                                               } )
     };
+
     if( encodedData !== undefined )
     {
-      request.headers[ 'Content-Length'] = encodedData.length().toString();
+      request.headers[ 'Content-Length'] = encodedData.length.toString();
       request.headers[ 'Content-Type' ] = 'application/json';
       request.body = encodedData;
     }
@@ -301,7 +302,7 @@ class CInP
     return this._request( 'CALL', uri, paramater_map, { 'Multi-Object': force_multi_mode } )
       .then( ( result ) =>
         {
-          deferred.resolve( { data: result.data, multiObject: result.headers.get( 'Multi-Object' ) } );
+          return( { data: result.data, multiObject: result.headers.get( 'Multi-Object' ) } );
         }
       )
   };
@@ -318,24 +319,6 @@ class CInP
     if( parts[4] !== undefined )
     {
       result.id_list = parts[4].split( ':' );
-    }
-
-    return result;
-  };
-
-  extractIds = ( uri_list ) =>
-  {
-    var result = [];
-
-    for( var uri of uri_list )
-    {
-      var parts = uriRegex.exec( uri );
-      if( parts[4] === undefined )
-      {
-        continue;
-      }
-
-      result = result.concat( parts[4].split( ':' ).slice( 1, -1 ) );
     }
 
     return result;
@@ -360,6 +343,31 @@ class CInP
     }
   };
 
+  static extractIds = ( uri_list ) =>
+  {
+    var result = [];
+    if( !Array.isArray( uri_list ) )
+    {
+      uri_list = [ uri_list ];
+    }
+
+    for( var uri of uri_list )
+    {
+      if( uri === undefined || uri === null )
+        continue;
+
+      var parts = uriRegex.exec( uri );
+      if( parts[4] === undefined )
+      {
+        continue;
+      }
+
+      result = result.concat( parts[4].split( ':' ).slice( 1, -1 ) );
+    }
+
+    return result;
+  }
+
   // For now we are only getting one list_chunk_size, and getting the all the list at the same time.
   getFilteredObjects = ( uri, filter_name, filter_value_map, list_chunk_size, get_chunk_size ) =>
   {
@@ -375,7 +383,7 @@ class CInP
     return this.list( uri, filter_name, filter_value_map, 0, list_chunk_size )
       .then( ( result ) =>
       {
-        var id_list = this.extractIds( result.data );
+        var id_list = CInP.extractIds( result.data );
 
         return this.getMulti( uri, id_list, result.count );
       } );
