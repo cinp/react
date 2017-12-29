@@ -47,7 +47,7 @@ class CInP
     }
   };
 
-  _request = ( method, uri, data, header_map ) =>
+  _request = ( verb, uri, data, header_map ) =>
   {
     if( this.auth_id !== null )
     {
@@ -56,7 +56,7 @@ class CInP
 
     const encodedData = JSON.stringify( data );
     const request = {
-      method: method,
+      method: verb,
       headers: Object.assign( {}, header_map, {
                                                 'Accept': 'application/json',
                                                 'CInP-Version': '0.9'
@@ -65,7 +65,7 @@ class CInP
 
     if( encodedData !== undefined )
     {
-      request.headers[ 'Content-Length'] = encodedData.length.toString();
+      request.headers[ 'Content-Length' ] = encodedData.length.toString();
       request.headers[ 'Content-Type' ] = 'application/json';
       request.body = encodedData;
     }
@@ -77,17 +77,17 @@ class CInP
         {
           if ( response.status < 200 || response.status >= 300 )
           {
-            this._ajax_fail( method, uri, reject, response );
+            this._ajax_fail( verb, uri, reject, response );
           }
           else
           {
             response.json().then( ( data ) => resolve( { data: data, status: response.status, headers: response.headers } ),
-                                  ( error ) => this._ajax_fail( method, uri, reject, error ) );
+                                  ( error ) => this._ajax_fail( verb, uri, reject, error ) );
           }
         },
         ( error ) =>
         {
-          this._ajax_fail( method, uri, reject, error );
+          this._ajax_fail( verb, uri, reject, error );
         }
       ).catch( ( err ) =>
         {
@@ -97,16 +97,16 @@ class CInP
     } );
   };
 
-  _ajax_fail = ( method, uri, reject, response ) =>
+  _ajax_fail = ( verb, uri, reject, response ) =>
   {
     if( !( response instanceof Response ) )
     {
-      console.error( 'cinp: doing "' + method + '" on "' +  uri + '" Error: ' + response );
+      console.error( 'cinp: doing "' + verb + '" on "' +  uri + '" Error: ' + response );
       reject( 'Error "' + response + '"' );
       return;
     }
 
-    console.error( 'cinp: doing "' + method + '" on "' +  uri + '" Status: ' + response.status );
+    console.error( 'cinp: doing "' + verb + '" on "' +  uri + '" Status: ' + response.status );
 
     response.text().then( ( value ) => this._ajax_fail_inner( response, value, reject ) );
   };
@@ -188,11 +188,11 @@ class CInP
 
           if( type == 'Namespace' )
           {
-            return( { type: 'namespace', name: data.name, doc: data.doc, path: data.path, version: data[ 'api-version' ], uri_max: data[ 'multi-uri-max' ], namespace_list: data.namespaces, model_list: data.models } );
+            return( { type: 'namespace', name: data.name, doc: data.doc, path: data.path, version: data[ 'api-version' ], multi_uri_max: data[ 'multi-uri-max' ], namespace_list: data.namespaces, model_list: data.models } );
           }
           else if( type == 'Model' )
           {
-            return( { type: 'model', name: data.name, doc: data.doc, path: data.path, constant_list: data.constants, field_list: data.fields, action_list: data.actions, not_allowed_methods: data[ 'not-allowed-metods' ], list_filters: data[ 'list-filters' ] } );
+            return( { type: 'model', name: data.name, doc: data.doc, path: data.path, constant_list: data.constants, field_list: data.fields, action_list: data.actions, not_allowed_verbs: data[ 'not-allowed-metods' ], list_filter_list: data[ 'list-filters' ] } );
           }
           else if( type == 'Action' )
           {
