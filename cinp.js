@@ -47,7 +47,7 @@ class CInP
     }
   };
 
-  _request = ( method, uri, data, header_map ) =>
+  _request = ( verb, uri, data, header_map ) =>
   {
     if( this.auth_id !== null )
     {
@@ -56,15 +56,16 @@ class CInP
 
     const encodedData = JSON.stringify( data );
     const request = {
-      method: method,
+      method: verb,
       headers: Object.assign( {}, header_map, {
                                                 'Accept': 'application/json',
                                                 'CInP-Version': '0.9'
                                               } )
     };
+
     if( encodedData !== undefined )
     {
-      request.headers[ 'Content-Length'] = encodedData.length().toString();
+      request.headers[ 'Content-Length' ] = encodedData.length.toString();
       request.headers[ 'Content-Type' ] = 'application/json';
       request.body = encodedData;
     }
@@ -76,17 +77,17 @@ class CInP
         {
           if ( response.status < 200 || response.status >= 300 )
           {
-            this._ajax_fail( method, uri, reject, response );
+            this._ajax_fail( verb, uri, reject, response );
           }
           else
           {
             response.json().then( ( data ) => resolve( { data: data, status: response.status, headers: response.headers } ),
-                                  ( error ) => this._ajax_fail( method, uri, reject, error ) );
+                                  ( error ) => this._ajax_fail( verb, uri, reject, error ) );
           }
         },
         ( error ) =>
         {
-          this._ajax_fail( method, uri, reject, error );
+          this._ajax_fail( verb, uri, reject, error );
         }
       ).catch( ( err ) =>
         {
@@ -96,16 +97,16 @@ class CInP
     } );
   };
 
-  _ajax_fail = ( method, uri, reject, response ) =>
+  _ajax_fail = ( verb, uri, reject, response ) =>
   {
     if( !( response instanceof Response ) )
     {
-      console.error( 'cinp: doing "' + method + '" on "' +  uri + '" Error: ' + response );
+      console.error( 'cinp: doing "' + verb + '" on "' +  uri + '" Error: ' + response );
       reject( 'Error "' + response + '"' );
       return;
     }
 
-    console.error( 'cinp: doing "' + method + '" on "' +  uri + '" Status: ' + response.status );
+    console.error( 'cinp: doing "' + verb + '" on "' +  uri + '" Status: ' + response.status );
 
     response.text().then( ( value ) => this._ajax_fail_inner( response, value, reject ) );
   };
@@ -187,11 +188,11 @@ class CInP
 
           if( type == 'Namespace' )
           {
-            return( { type: 'namespace', name: data.name, doc: data.doc, path: data.path, version: data[ 'api-version' ], uri_max: data[ 'multi-uri-max' ], namespace_list: data.namespaces, model_list: data.models } );
+            return( { type: 'namespace', name: data.name, doc: data.doc, path: data.path, version: data[ 'api-version' ], multi_uri_max: data[ 'multi-uri-max' ], namespace_list: data.namespaces, model_list: data.models } );
           }
           else if( type == 'Model' )
           {
-            return( { type: 'model', name: data.name, doc: data.doc, path: data.path, constant_list: data.constants, field_list: data.fields, action_list: data.actions, not_allowed_methods: data[ 'not-allowed-metods' ], list_filters: data[ 'list-filters' ] } );
+            return( { type: 'model', name: data.name, doc: data.doc, path: data.path, constant_list: data.constants, field_list: data.fields, action_list: data.actions, not_allowed_verbs: data[ 'not-allowed-metods' ], list_filter_list: data[ 'list-filters' ] } );
           }
           else if( type == 'Action' )
           {
@@ -301,7 +302,7 @@ class CInP
     return this._request( 'CALL', uri, paramater_map, { 'Multi-Object': force_multi_mode } )
       .then( ( result ) =>
         {
-          deferred.resolve( { data: result.data, multiObject: result.headers.get( 'Multi-Object' ) } );
+          return( { data: result.data, multiObject: result.headers.get( 'Multi-Object' ) } );
         }
       )
   };
@@ -318,24 +319,6 @@ class CInP
     if( parts[4] !== undefined )
     {
       result.id_list = parts[4].split( ':' );
-    }
-
-    return result;
-  };
-
-  extractIds = ( uri_list ) =>
-  {
-    var result = [];
-
-    for( var uri of uri_list )
-    {
-      var parts = uriRegex.exec( uri );
-      if( parts[4] === undefined )
-      {
-        continue;
-      }
-
-      result = result.concat( parts[4].split( ':' ).slice( 1, -1 ) );
     }
 
     return result;
@@ -360,6 +343,31 @@ class CInP
     }
   };
 
+  static extractIds = ( uri_list ) =>
+  {
+    var result = [];
+    if( !Array.isArray( uri_list ) )
+    {
+      uri_list = [ uri_list ];
+    }
+
+    for( var uri of uri_list )
+    {
+      if( uri === undefined || uri === null )
+        continue;
+
+      var parts = uriRegex.exec( uri );
+      if( parts[4] === undefined )
+      {
+        continue;
+      }
+
+      result = result.concat( parts[4].split( ':' ).slice( 1, -1 ) );
+    }
+
+    return result;
+  }
+
   // For now we are only getting one list_chunk_size, and getting the all the list at the same time.
   getFilteredObjects = ( uri, filter_name, filter_value_map, list_chunk_size, get_chunk_size ) =>
   {
@@ -375,7 +383,7 @@ class CInP
     return this.list( uri, filter_name, filter_value_map, 0, list_chunk_size )
       .then( ( result ) =>
       {
-        var id_list = this.extractIds( result.data );
+        var id_list = CInP.extractIds( result.data );
 
         return this.getMulti( uri, id_list, result.count );
       } );
