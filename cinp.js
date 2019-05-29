@@ -279,7 +279,7 @@ class CInP
       args.Position = position;
     }
 
-    if( count !== undefined || count !== '' )
+    if( count !== undefined && count !== '' )
     {
       args.Count = count;
     }
