@@ -192,7 +192,7 @@ class CInP
           }
           else if( type == 'Model' )
           {
-            return( { type: 'model', name: data.name, doc: data.doc, path: data.path, constant_list: data.constants, field_list: data.fields, action_list: data.actions, not_allowed_verbs: data[ 'not-allowed-metods' ], list_filter_list: data[ 'list-filters' ] } );
+            return( { type: 'model', name: data.name, doc: data.doc, path: data.path, constant_list: data.constants, field_list: data.fields, action_list: data.actions, not_allowed_verbs: data[ 'not-allowed-methods' ], list_filter_list: data[ 'list-filters' ] } );
           }
           else if( type == 'Action' )
           {
